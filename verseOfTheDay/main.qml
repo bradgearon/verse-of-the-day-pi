@@ -1,24 +1,47 @@
 import QtQuick 2.9
 import QtQuick.Window 2.2
+import QtQuick.Controls 2.3
 
 Window {
     property var verseData
     visible: true
-    title: qsTr("Hello World")
+    title: qsTr("verse of the day")
 
-    Flow {
-        id: flow1
+    Image {
         anchors.fill: parent
+        source: verseData.backgroundImage
+    }
 
-        Image {
-            anchors.fill: parent
-            objectName: "backImage"
-        }
+    Image {
+        id: image
+        anchors.fill: parent
+        source: verseData.foregroundImage
+    }
 
-        Image {
-            anchors.fill: parent
-            objectName: "foreImage"
+    Button {
+        visible: verseData.canGoBack
+        text: qsTr("<--")
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.leftMargin: 24
+        anchors.bottomMargin: 16
+        onClicked: {
+            verseData.selectedDay++;
         }
     }
+
+    Button {
+        visible: verseData.canGoForward
+        text: qsTr("-->")
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        anchors.rightMargin: 24
+        anchors.bottomMargin: 16
+        onClicked: {
+            verseData.selectedDay--;
+        }
+    }
+
+
 
 }

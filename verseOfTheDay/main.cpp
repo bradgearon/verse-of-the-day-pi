@@ -1,13 +1,25 @@
 #include "filedownloader.h"
-#include "verseimageprovider.h"
+#include <QDate>
+#include <QDateTime>
 #include <QGuiApplication>
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QQmlApplicationEngine>
+#include <QTime>
+#include <QTimer>
 #include <QWindow>
 #include <QtDebug>
+#include <chrono>
 #include <iostream>
 #include <memory>
+
+static qint32 getMsToTomorrowAtEight() {
+  auto tomorrow = QDate::currentDate().addDays(1);
+  QDateTime eightTomorrow(tomorrow, QTime(8, 0, 0, 0));
+  auto now = QDateTime::currentDateTime();
+  auto msToEightTomorrow = static_cast<qint32>(now.msecsTo(eightTomorrow));
+  return msToEightTomorrow;
+}
 
 int main(int argc, char *argv[]) {
 #if defined(Q_OS_WIN)
@@ -17,35 +29,32 @@ int main(int argc, char *argv[]) {
   QGuiApplication app(argc, argv);
   QQmlApplicationEngine engine;
 
-  auto verseImageProvider = new VerseImageProvider();
-  VerseData data;
-  verseImageProvider->setData(&data);
-
-  engine.addImageProvider(QLatin1String("verse"), verseImageProvider);
-
   engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 
   QWindow *obj = static_cast<QWindow *>(engine.rootObjects().first());
   obj->setVisibility(QWindow::FullScreen);
 
-  // obj->setProperty("verseData", QVariant::fromValue(&data));
+  VerseData verseData;
+  obj->setProperty("verseData", QVariant::fromValue(&verseData));
 
-  FileDownloader fd(QUrl(QStringLiteral("https://lightfortheday.com/")), &data);
+  FileDownloader downloader(&verseData);
+  auto url = QUrl(QStringLiteral("https://lightfortheday.com/"));
+  downloader.DownloadUrl(url);
 
-  auto backImage = obj->findChild<QObject *>("backImage");
-  auto foreImage = obj->findChild<QObject *>("foreImage");
+  QTimer timer;
+  timer.setSingleShot(true);
 
-  QObject::connect(
-      &fd, &FileDownloader::downloaded, [&data, backImage, foreImage]() {
-        qDebug() << "testing" << data.getBackgroundImage().length();
-        qDebug() << "this fired" << data.getForegroundImage().length();
-        if (data.getBackgroundImage().length() > 0) {
-          backImage->setProperty("source", "image://verse/back");
-        }
-        if (data.getForegroundImage().length() > 0) {
-          foreImage->setProperty("source", "image://verse/fore");
-        }
-      });
+  QObject::connect(&timer, &QTimer::timeout, [&downloader, &url, &timer]() {
+    downloader.DownloadUrl(url);
+    auto timerDuration = getMsToTomorrowAtEight();
+    timer.start(timerDuration);
+    qDebug() << "timer started kick off in " << timerDuration;
+  });
+
+  auto timerDuration = getMsToTomorrowAtEight();
+  timer.start(timerDuration);
+
+  qDebug() << "timer started kick off in " << timerDuration;
 
   if (engine.rootObjects().isEmpty())
     return -1;
