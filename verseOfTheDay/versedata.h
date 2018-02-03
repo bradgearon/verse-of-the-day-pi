@@ -3,8 +3,8 @@
 
 #include "imageset.h"
 #include <QObject>
+#include <QRegExp>
 #include <memory>
-#include <regex>
 #include <vector>
 
 class VerseData : public QObject {
